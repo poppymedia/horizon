@@ -1,0 +1,121 @@
+{%- liquid
+  assign block_settings = block.settings
+  assign product_resource = closest.product
+  assign selected_variant = product_resource.selected_or_first_available_variant
+  
+  # Get the metafield namespace and key from settings
+  assign metafield_namespace = block_settings.metafield_namespace | default: 'custom'
+  assign metafield_key = block_settings.metafield_key | default: 'delivery_note'
+  
+  # Get the metafield value
+  assign metafield_value = selected_variant.metafields[metafield_namespace][metafield_key]
+-%}
+
+{% if metafield_value != blank %}
+  <product-metafield
+    class="text-block {{ text_block_classes }}"
+    data-block-id="{{ block.id }}"
+    data-product-id="{{ product_resource.id }}"
+    data-metafield-namespace="{{ metafield_namespace }}"
+    data-metafield-key="{{ metafield_key }}"
+    data-metafield-output="{{ block.settings.metafield_output_type | default: 'auto' }}"
+    {{ block.shopify_attributes }}
+  >
+    <div class="delivery-note">
+      {% assign out_type = block.settings.metafield_output_type | default: 'auto' %}
+      {% case out_type %}
+        {% when 'richtext' %}
+          {{ metafield_value }}
+        {% when 'list' %}
+          {% if metafield_value and metafield_value.size > 0 %}
+            <ul>
+              {% for item in metafield_value %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            {{ metafield_value }}
+          {% endif %}
+        {% when 'boolean' %}
+          {% if metafield_value == true %}Yes{% else %}No{% endif %}
+        {% when 'json' %}
+          <pre>{{ metafield_value | json }}</pre>
+        {% else %}
+          {{ metafield_value }}
+      {% endcase %}
+    </div>
+  </product-metafield>
+{% endif %}
+
+
+{% schema %}
+{
+  "name": "Metafield block",
+  "tag": "div",
+  "settings": [
+    {
+      "type": "select",
+      "id": "metafield_output_type",
+      "label": "Metafield output type",
+      "options": [
+        { "value": "auto", "label": "Auto" },
+        { "value": "richtext", "label": "Rich text / HTML" },
+        { "value": "list", "label": "List (array)" },
+        { "value": "boolean", "label": "Boolean" },
+        { "value": "json", "label": "JSON / Debug" }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "text",
+      "id": "metafield_namespace",
+      "label": "Metafield Namespace",
+      "default": "custom",
+      "info": "The namespace of your variant metafield (e.g., 'custom')"
+    },
+    {
+      "type": "text",
+      "id": "metafield_key",
+      "label": "Metafield Key",
+      "default": "delivery_note",
+      "info": "The key of your variant metafield (e.g., 'delivery_note')"
+    },
+    {
+      "type": "select",
+      "id": "text_style",
+      "label": "Text Style",
+      "options": [
+        {
+          "value": "body",
+          "label": "Body"
+        },
+        {
+          "value": "caption",
+          "label": "Caption"
+        },
+        {
+          "value": "subtitle",
+          "label": "Subtitle"
+        }
+      ],
+      "default": "body"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Top Margin",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:names.variant_metafield",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}
