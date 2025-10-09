@@ -12,25 +12,60 @@
 -%}
 
 {% if metafield_value != blank %}
-  <product-delivery
+  <product-metafield
     class="text-block {{ text_block_classes }}"
     data-block-id="{{ block.id }}"
     data-product-id="{{ product_resource.id }}"
     data-metafield-namespace="{{ metafield_namespace }}"
     data-metafield-key="{{ metafield_key }}"
+    data-metafield-output="{{ block.settings.metafield_output_type | default: 'auto' }}"
     {{ block.shopify_attributes }}
   >
     <div class="delivery-note">
-      {{ metafield_value }}
+      {% assign out_type = block.settings.metafield_output_type | default: 'auto' %}
+      {% case out_type %}
+        {% when 'richtext' %}
+          {{ metafield_value }}
+        {% when 'list' %}
+          {% if metafield_value and metafield_value.size > 0 %}
+            <ul>
+              {% for item in metafield_value %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            {{ metafield_value }}
+          {% endif %}
+        {% when 'boolean' %}
+          {% if metafield_value == true %}Yes{% else %}No{% endif %}
+        {% when 'json' %}
+          <pre>{{ metafield_value | json }}</pre>
+        {% else %}
+          {{ metafield_value }}
+      {% endcase %}
     </div>
-  </product-delivery>
+  </product-metafield>
 {% endif %}
+
 
 {% schema %}
 {
-  "name": "t:names.variant_delivery_note",
-  "tag": null,
+  "name": "Metafield block",
+  "tag": "div",
   "settings": [
+    {
+      "type": "select",
+      "id": "metafield_output_type",
+      "label": "Metafield output type",
+      "options": [
+        { "value": "auto", "label": "Auto" },
+        { "value": "richtext", "label": "Rich text / HTML" },
+        { "value": "list", "label": "List (array)" },
+        { "value": "boolean", "label": "Boolean" },
+        { "value": "json", "label": "JSON / Debug" }
+      ],
+      "default": "auto"
+    },
     {
       "type": "text",
       "id": "metafield_namespace",
@@ -78,7 +113,7 @@
   ],
   "presets": [
     {
-      "name": "t:names.variant_delivery_note",
+      "name": "t:names.variant_metafield",
       "category": "t:categories.product"
     }
   ]
